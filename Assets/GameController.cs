@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Newtonsoft.Json.Linq;
+
 public class GameController : MonoBehaviour
 {
     [Header("Register Fields")]
+    [SerializeField]
+    private InputField RegFIO;
     [SerializeField]
     private InputField RegLogin;
     [SerializeField]
@@ -26,6 +30,12 @@ public class GameController : MonoBehaviour
 
 
 
+    public InputField StringToSend;
+    public InputField IntToSend;
+    public Toggle BoolToSend;
+    public Text ParamsText;
+    
+
     // Start is called before the first frame update
     void Start()
     {
@@ -39,12 +49,6 @@ public class GameController : MonoBehaviour
             AuthProcess(log, pass);
 
         }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 
 
@@ -69,7 +73,9 @@ public class GameController : MonoBehaviour
                 PlayerPrefs.Save();
                 AuthArray.SetActive(false);
                 MainMenuArray.SetActive(false);
+                RegArray.SetActive(false);
                 LobbyArray.SetActive(true);
+                ParamsText.text = msg["useparams"].ToString();
             }
             Debug.Log(msg + " " + status);
 
@@ -79,21 +85,21 @@ public class GameController : MonoBehaviour
     public void Register()
     {
         
-        if (RegLogin.text != string.Empty && RegPassword.text != string.Empty && RegPassword.text == RegRePassword.text)
+        if (RegFIO.text != string.Empty && RegLogin.text != string.Empty && RegPassword.text != string.Empty && RegPassword.text == RegRePassword.text)
         {
+            string login = RegLogin.text;
+            string password = RegPassword.text;
+            JObject jObject = new JObject();
+            jObject["FIO"] = RegFIO.text;
+
             RankSystem.instanse.Register(RegLogin.text, RegPassword.text, (msg, status) =>
             {
-                                    Debug.Log(msg + " " + status);
+                Debug.Log(msg + " " + status);
                 if (status)
                 {
-
-                    PlayerPrefs.SetString("login", RegLogin.text);
-                    PlayerPrefs.SetString("password", RegPassword.text);
-                    PlayerPrefs.Save();
-                    RegArray.SetActive(false);
-                    LobbyArray.SetActive(true);
+                    AuthProcess(login, password);
                 }
-            });
+            }, jObject);
         }
     }
 
@@ -115,5 +121,35 @@ public class GameController : MonoBehaviour
 
         PlayerPrefs.DeleteAll();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void Sending()
+    {
+        JObject jObject = new JObject();
+        if(StringToSend.text != string.Empty && IntToSend.text != string.Empty)
+        {
+            int temp = int.Parse(IntToSend.text);
+            jObject["stringData"] = StringToSend.text;
+            jObject["intData"] = temp;
+            jObject["boolData"] = BoolToSend.isOn;
+            RankSystem.instanse.SendData(jObject, (msg, status) =>
+            {
+                Debug.Log(msg + " " + status);
+            });
+        }
+    }
+
+    public void Getting()
+    {
+
+        RankSystem.instanse.GettingData((result, status) =>
+        {
+            if (status)
+            {
+                StringToSend.text = result["stringData"].Value<string>();
+                IntToSend.text = result["intData"].Value<string>();
+                BoolToSend.isOn = result["boolData"].Value<bool>();
+            }
+        });
     }
 }

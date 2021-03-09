@@ -6,6 +6,13 @@ using UnityEditor;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
 
+public enum ContainerBase
+{
+    Constant,
+    Parameters
+}
+
+
 public class RankSystem : MonoBehaviour
 {
     public static RankSystem instanse = null; 
@@ -18,13 +25,15 @@ public class RankSystem : MonoBehaviour
 
 
     public delegate void Del(string message, bool result);
-
+    public delegate void DelJson(JObject message, bool result);
 
     private string SessionKey = string.Empty;
 
     private string TestConnectionPostHeade = "/testConnection";
     private string RegisterPostHeade = "/registerClient";
     private string AuthPostHeade = "/authClient";
+    private string SendPostHeade = "/sendData";
+    private string GetPostHeade = "/getData";
 
     // Start is called before the first frame update
     void Start()
@@ -48,25 +57,34 @@ public class RankSystem : MonoBehaviour
 
     }
 
-    public void Register(string login, string password, Del callback)
+    public void Register(string login, string password, DelJson callback, JObject regAdditions = null)
     {
-
+        JArray jArray = new JArray();
         JObject jObject = new JObject();
+        jObject["gameKey"] = GameKey;
+        jObject["login"] = login;
+        jObject["password"] = password;
+        jArray.Add(jObject);
+
+        if (regAdditions != null)
+        {
+            jArray.Add(regAdditions); 
+        }
+
         if (GameKey != string.Empty && ServerAdress != string.Empty)
         {
-            jObject["gameKey"] = GameKey;
-            jObject["login"] = login;
-            jObject["password"] = password;
-            StartCoroutine(PostRequest(ServerAdress + RegisterPostHeade, jObject.ToString(), (string result, bool status) => {
+
+            StartCoroutine(PostRequest(ServerAdress + RegisterPostHeade, jArray.ToString(), (string result, bool status) => {
+                Debug.Log(result);
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
                 {
-                    callback(a["error"].ToString(), false);
+                    callback(a, false);
                 }
                 else
                 {
                     SessionKey = a["result"].ToString();
-                    callback(a["result"].ToString(), true);
+                    callback(a, true);
                 }
 
 
@@ -74,10 +92,10 @@ public class RankSystem : MonoBehaviour
         }
     }
 
-    public void Auth(string login, string password, Del callback)
+    public void Auth(string login, string password, DelJson callback)
     {
         JObject jObject = new JObject();
-        if (GameKey != string.Empty && ServerAdress != string.Empty)
+        if (GameKey != string.Empty && ServerAdress != string.Empty )
         {
             jObject["gameKey"] = GameKey;
             jObject["login"] = login;
@@ -86,14 +104,70 @@ public class RankSystem : MonoBehaviour
                 JObject a = JObject.Parse(result);
                 if(a["error"] != null)
                 {
-                    callback(a["error"].ToString(), false);
+                    callback(a, false);
                 }
                 else
                 {
                     SessionKey = a["result"].ToString();
-                    callback(a["result"].ToString(), true);
+                    callback(a, true);
                 }
   
+            }));
+        }
+    }
+
+    public void SendData(JObject dataToSend, Del callback)
+    {
+        if (dataToSend != null && dataToSend["gameKey"] == null && SessionKey != string.Empty)
+        {
+            dataToSend["gameKey"] = GameKey;
+            dataToSend["sessionKey"] = SessionKey;
+
+            StartCoroutine(PostRequest(ServerAdress + SendPostHeade, dataToSend.ToString(), (string result, bool status) => {
+                JObject a = JObject.Parse(result);
+                if (a["error"] != null)
+                {
+                    callback(a["error"].ToString(), false);
+                }
+                else
+                {
+                    callback(a["result"].ToString(), true);
+                }
+
+            }));
+        }
+    }
+
+
+    public void GettingData( DelJson callback, ContainerBase container = ContainerBase.Parameters)
+    {
+        JObject jObject = new JObject();
+        if (SessionKey != string.Empty)
+        {
+            jObject["gameKey"] = GameKey;
+            jObject["sessionKey"] = SessionKey;
+
+            if(container == ContainerBase.Parameters)
+            {
+                jObject["base"] = "params";
+
+            }
+            else
+            {
+                jObject["base"] = "const_params";
+            }
+
+            StartCoroutine(PostRequest(ServerAdress + GetPostHeade, jObject.ToString(), (string result, bool status) => {
+                JObject a = JObject.Parse(result);
+                if (a["error"] != null)
+                {
+                    callback(a, false);
+                }
+                else
+                {
+                    callback(a, true);
+                }
+
             }));
         }
     }
@@ -134,7 +208,7 @@ public class RankSystem : MonoBehaviour
         }
     }
 
-
+#if UNITY_EDITOR
     [CustomEditor(typeof(RankSystem))]
     public class MyEditor : Editor
     {
@@ -150,4 +224,5 @@ public class RankSystem : MonoBehaviour
 
         }
     }
+#endif
 }
