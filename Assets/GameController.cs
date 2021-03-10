@@ -34,8 +34,8 @@ public class GameController : MonoBehaviour
     public InputField IntToSend;
     public Toggle BoolToSend;
     public Text ParamsText;
-    
 
+    public InputField RankText;
     // Start is called before the first frame update
     void Start()
     {
@@ -151,5 +151,26 @@ public class GameController : MonoBehaviour
                 BoolToSend.isOn = result["boolData"].Value<bool>();
             }
         });
+    }
+
+    public void SendRank()
+    {
+        if(RankText.text != string.Empty)
+        {
+            float temp = float.Parse(RankText.text);
+            RankSystem.instanse.setRating(temp, (msg, status) =>
+            {
+                Debug.Log(msg + " " + status);
+            });
+        }
+    }
+
+    public void GetRankList()
+    {
+
+            RankSystem.instanse.getRating(3, (msg, status) =>
+            {
+                Debug.Log(msg + " " + status);
+            });
     }
 }

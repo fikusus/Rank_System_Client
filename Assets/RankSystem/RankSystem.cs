@@ -34,7 +34,8 @@ public class RankSystem : MonoBehaviour
     private string AuthPostHeade = "/authClient";
     private string SendPostHeade = "/sendData";
     private string GetPostHeade = "/getData";
-
+    private string GetRating = "/getRating";
+    private string SetRating = "/setRating";
     // Start is called before the first frame update
     void Start()
     {
@@ -138,6 +139,54 @@ public class RankSystem : MonoBehaviour
         }
     }
 
+    public void getRating(uint count, Del callback)
+    {
+        if (SessionKey != string.Empty)
+        {
+            JObject jObject = new JObject();
+            jObject["gameKey"] = GameKey;
+            jObject["sessionKey"] = SessionKey;
+            jObject["count"] = count;
+            StartCoroutine(PostRequest(ServerAdress + GetRating, jObject.ToString(), (string result, bool status) => {
+                Debug.Log(result);
+              /*  JObject a = JObject.Parse(result);
+                if (a["error"] != null)
+                {
+                    callback(a["error"].ToString(), false);
+                }
+                else
+                {
+                    callback(a["result"].ToString(), true);
+                }*/
+
+            }));
+        }
+    }
+
+    public void setRating(float rating, Del callback)
+    {
+        if (SessionKey != string.Empty)
+        {
+            JObject jObject = new JObject();
+            jObject["gameKey"] = GameKey;
+            jObject["sessionKey"] = SessionKey;
+            jObject["rank"] = rating;
+            StartCoroutine(PostRequest(ServerAdress + SetRating, jObject.ToString(), (string result, bool status) => {
+                Debug.Log(result);
+                /*  JObject a = JObject.Parse(result);
+                  if (a["error"] != null)
+                  {
+                      callback(a["error"].ToString(), false);
+                  }
+                  else
+                  {
+                      callback(a["result"].ToString(), true);
+                  }*/
+
+            }));
+        }
+    }
+
 
     public void GettingData( DelJson callback, ContainerBase container = ContainerBase.Parameters)
     {
@@ -147,17 +196,10 @@ public class RankSystem : MonoBehaviour
             jObject["gameKey"] = GameKey;
             jObject["sessionKey"] = SessionKey;
 
-            if(container == ContainerBase.Parameters)
-            {
-                jObject["base"] = "params";
-
-            }
-            else
-            {
-                jObject["base"] = "const_params";
-            }
 
             StartCoroutine(PostRequest(ServerAdress + GetPostHeade, jObject.ToString(), (string result, bool status) => {
+
+                Debug.Log(result);
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
                 {
