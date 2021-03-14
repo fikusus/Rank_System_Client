@@ -1,16 +1,9 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEditor;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
 
-public enum ContainerBase
-{
-    Constant,
-    Parameters
-}
 
 
 public class RankSystem : MonoBehaviour
@@ -34,30 +27,17 @@ public class RankSystem : MonoBehaviour
     private string AuthPostHeade = "/authClient";
     private string SendPostHeade = "/sendData";
     private string GetPostHeade = "/getData";
-    private string GetRating = "/getRating";
-    private string SetRating = "/setRating";
-    // Start is called before the first frame update
+    private string GetRatingHeade = "/getRating";
+
     void Start()
     {
+        DontDestroyOnLoad(this.gameObject);
         if (instanse == null)
         {
             instanse = this;
         }
     }
     
-    public void Connect(Del callback)
-    {
-        JObject jObject = new JObject();
-        if (GameKey != string.Empty && ServerAdress != string.Empty)
-        {
-            jObject["gameKey"] = GameKey;
-            StartCoroutine(PostRequest(ServerAdress + TestConnectionPostHeade, jObject.ToString(), (string result, bool status) => {
-                    callback(result, status);
-            }));
-        }
-
-    }
-
     public void Register(string login, string password, DelJson callback, JObject regAdditions = null)
     {
         JArray jArray = new JArray();
@@ -66,15 +46,12 @@ public class RankSystem : MonoBehaviour
         jObject["login"] = login;
         jObject["password"] = password;
         jArray.Add(jObject);
-
         if (regAdditions != null)
         {
             jArray.Add(regAdditions); 
         }
-
         if (GameKey != string.Empty && ServerAdress != string.Empty)
         {
-
             StartCoroutine(PostRequest(ServerAdress + RegisterPostHeade, jArray.ToString(), (string result, bool status) => {
                 Debug.Log(result);
                 JObject a = JObject.Parse(result);
@@ -90,6 +67,12 @@ public class RankSystem : MonoBehaviour
 
 
             }));
+        }
+        else
+        {
+            JObject errorObj = new JObject();
+            errorObj["error"] = "ER_INVALID_FIELDS";
+            callback(errorObj, false);
         }
     }
 
@@ -115,31 +98,49 @@ public class RankSystem : MonoBehaviour
   
             }));
         }
+        else
+        {
+            JObject errorObj = new JObject();
+            errorObj["error"] = "ER_INVALID_FIELDS";
+            callback(errorObj, false);
+        }
     }
 
-    public void SendData(JObject dataToSend, Del callback)
+    public void SendData(JObject dataToSend, DelJson callback)
     {
         if (dataToSend != null && dataToSend["gameKey"] == null && SessionKey != string.Empty)
         {
-            dataToSend["gameKey"] = GameKey;
-            dataToSend["sessionKey"] = SessionKey;
-
-            StartCoroutine(PostRequest(ServerAdress + SendPostHeade, dataToSend.ToString(), (string result, bool status) => {
+            JArray jArray = new JArray();
+            JObject jObject = new JObject();
+            JObject userData = new JObject();
+            jObject["gameKey"] = GameKey;
+            jObject["sessionKey"] = SessionKey;
+            jObject["type"] = "params";  
+            userData["userData"] = "'" + dataToSend.ToString() + "'"; 
+            jArray.Add(jObject);
+            jArray.Add(userData);
+            StartCoroutine(PostRequest(ServerAdress + SendPostHeade, jArray.ToString(), (string result, bool status) => {
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
                 {
-                    callback(a["error"].ToString(), false);
+                    callback(a, false);
                 }
                 else
                 {
-                    callback(a["result"].ToString(), true);
+                    callback(a, true);
                 }
 
             }));
         }
+        else
+        {
+            JObject errorObj = new JObject();
+            errorObj["error"] = "ER_INVALID_FIELDS";
+            callback(errorObj, false);
+        }
     }
 
-    public void getRating(uint count, Del callback)
+    public void GetRating(uint count, DelJson callback)
     {
         if (SessionKey != string.Empty)
         {
@@ -147,58 +148,7 @@ public class RankSystem : MonoBehaviour
             jObject["gameKey"] = GameKey;
             jObject["sessionKey"] = SessionKey;
             jObject["count"] = count;
-            StartCoroutine(PostRequest(ServerAdress + GetRating, jObject.ToString(), (string result, bool status) => {
-                Debug.Log(result);
-              /*  JObject a = JObject.Parse(result);
-                if (a["error"] != null)
-                {
-                    callback(a["error"].ToString(), false);
-                }
-                else
-                {
-                    callback(a["result"].ToString(), true);
-                }*/
-
-            }));
-        }
-    }
-
-    public void setRating(float rating, Del callback)
-    {
-        if (SessionKey != string.Empty)
-        {
-            JObject jObject = new JObject();
-            jObject["gameKey"] = GameKey;
-            jObject["sessionKey"] = SessionKey;
-            jObject["rank"] = rating;
-            StartCoroutine(PostRequest(ServerAdress + SetRating, jObject.ToString(), (string result, bool status) => {
-                Debug.Log(result);
-                /*  JObject a = JObject.Parse(result);
-                  if (a["error"] != null)
-                  {
-                      callback(a["error"].ToString(), false);
-                  }
-                  else
-                  {
-                      callback(a["result"].ToString(), true);
-                  }*/
-
-            }));
-        }
-    }
-
-
-    public void GettingData( DelJson callback, ContainerBase container = ContainerBase.Parameters)
-    {
-        JObject jObject = new JObject();
-        if (SessionKey != string.Empty)
-        {
-            jObject["gameKey"] = GameKey;
-            jObject["sessionKey"] = SessionKey;
-
-
-            StartCoroutine(PostRequest(ServerAdress + GetPostHeade, jObject.ToString(), (string result, bool status) => {
-
+            StartCoroutine(PostRequest(ServerAdress + GetRatingHeade, jObject.ToString(), (string result, bool status) => {
                 Debug.Log(result);
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
@@ -211,6 +161,79 @@ public class RankSystem : MonoBehaviour
                 }
 
             }));
+        }
+        else
+        {
+            JObject errorObj = new JObject();
+            errorObj["error"] = "ER_INVALID_FIELDS";
+            callback(errorObj, false);
+        }
+    }
+
+    public void SendRating(float rating, DelJson callback)
+    {
+        if (SessionKey != string.Empty)
+        {
+            JArray jArray = new JArray();
+            JObject jObject = new JObject();
+            JObject userData = new JObject();
+            jObject["gameKey"] = GameKey;
+            jObject["sessionKey"] = SessionKey;
+            jObject["type"] = "rating";
+
+            userData["userData"] = rating;
+            jArray.Add(jObject);
+            jArray.Add(userData);
+            StartCoroutine(PostRequest(ServerAdress + SendPostHeade, jArray.ToString(), (string result, bool status) => {
+                JObject a = JObject.Parse(result);
+                Debug.Log(a);
+                if (a["error"] != null)
+                {
+                    callback(a, false);
+                }
+                else
+                {
+                    callback(a, true);
+                }
+
+            }));
+        }
+        else
+        {
+            JObject errorObj = new JObject();
+            errorObj["error"] = "ER_INVALID_FIELDS";
+            callback(errorObj, false);
+        }
+    }
+
+
+    public void GettingData( DelJson callback)
+    {
+        JObject jObject = new JObject();
+        if (SessionKey != string.Empty)
+        {
+            jObject["gameKey"] = GameKey;
+            jObject["sessionKey"] = SessionKey;
+
+
+            StartCoroutine(PostRequest(ServerAdress + GetPostHeade, jObject.ToString(), (string result, bool status) => {
+                JObject a = JObject.Parse(result);
+                if (a["error"] != null)
+                {
+                    callback(a, false);
+                }
+                else
+                {
+                    callback(a, true);
+                }
+
+            }));
+        }
+        else
+        {
+            JObject errorObj = new JObject();
+            errorObj["error"] = "ER_INVALID_FIELDS";
+            callback(errorObj, false);
         }
     }
 
@@ -227,7 +250,7 @@ public class RankSystem : MonoBehaviour
         }
     }
 
-    IEnumerator PostRequest(string url, string json, Del callback)
+    private IEnumerator PostRequest(string url, string json, Del callback)
     {
         var uwr = new UnityWebRequest(url, "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(json);
@@ -246,7 +269,6 @@ public class RankSystem : MonoBehaviour
         else
         {
             callback(uwr.downloadHandler.text,true);
-
         }
     }
 

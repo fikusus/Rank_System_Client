@@ -144,8 +144,11 @@ public class GameController : MonoBehaviour
 
         RankSystem.instanse.GettingData((result, status) =>
         {
+
+            Debug.Log(result + " " + status);
             if (status)
             {
+
                 StringToSend.text = result["stringData"].Value<string>();
                 IntToSend.text = result["intData"].Value<string>();
                 BoolToSend.isOn = result["boolData"].Value<bool>();
@@ -158,7 +161,7 @@ public class GameController : MonoBehaviour
         if(RankText.text != string.Empty)
         {
             float temp = float.Parse(RankText.text);
-            RankSystem.instanse.setRating(temp, (msg, status) =>
+            RankSystem.instanse.SendRating(temp, (msg, status) =>
             {
                 Debug.Log(msg + " " + status);
             });
@@ -168,7 +171,7 @@ public class GameController : MonoBehaviour
     public void GetRankList()
     {
 
-            RankSystem.instanse.getRating(3, (msg, status) =>
+            RankSystem.instanse.GetRating(0, (msg, status) =>
             {
                 Debug.Log(msg + " " + status);
             });
