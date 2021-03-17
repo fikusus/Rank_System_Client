@@ -5660,5 +5660,25 @@ PrefabInstance:
       propertyPath: m_Name
       value: RankSystem
       objectReference: {fileID: 0}
+    - target: {fileID: 8825094595304025067, guid: a06e61f47cab350458e9ced7982a7060,
+        type: 3}
+      propertyPath: IV
+      value: vChW4jykWNDuvb3h
+      objectReference: {fileID: 0}
+    - target: {fileID: 8825094595304025067, guid: a06e61f47cab350458e9ced7982a7060,
+        type: 3}
+      propertyPath: GameKey
+      value: g7cbab5cea99169139e7e6d8ff74ebb77
+      objectReference: {fileID: 0}
+    - target: {fileID: 8825094595304025067, guid: a06e61f47cab350458e9ced7982a7060,
+        type: 3}
+      propertyPath: SecurityKey
+      value: DanqRx3S7gsEWIK1pNcNcXAK5O5aaa6F
+      objectReference: {fileID: 0}
+    - target: {fileID: 8825094595304025067, guid: a06e61f47cab350458e9ced7982a7060,
+        type: 3}
+      propertyPath: ServerAdress
+      value: http://localhost:3000
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a06e61f47cab350458e9ced7982a7060, type: 3}

@@ -149,9 +149,9 @@ public class GameController : MonoBehaviour
             if (status)
             {
 
-                StringToSend.text = result["stringData"].Value<string>();
-                IntToSend.text = result["intData"].Value<string>();
-                BoolToSend.isOn = result["boolData"].Value<bool>();
+              //  StringToSend.text = result["stringData"].Value<string>();
+                //IntToSend.text = result["intData"].Value<string>();
+               // BoolToSend.isOn = result["boolData"].Value<bool>();
             }
         });
     }

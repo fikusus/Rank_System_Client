@@ -3,16 +3,25 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.Networking;
 using Newtonsoft.Json.Linq;
-
-
+using System.Text;
+using System.IO;
+using System.Security.Cryptography;
+using DUCK.Crypto;
+using static DUCK.Crypto.SimpleAESEncryption;
+using System;
 
 public class RankSystem : MonoBehaviour
 {
-    public static RankSystem instanse = null; 
+    public static RankSystem instanse = null;
+
 
     [Header("Connection settings")]
     [SerializeField]
     private string GameKey;
+    [SerializeField]
+    private string SecurityKey;
+    [SerializeField]
+    private string IV;
     [SerializeField]
     private string ServerAdress = "127.0.0.1:3000";
 
@@ -41,15 +50,19 @@ public class RankSystem : MonoBehaviour
     public void Register(string login, string password, DelJson callback, JObject regAdditions = null)
     {
         JArray jArray = new JArray();
-        JObject jObject = new JObject();
-        jObject["gameKey"] = GameKey;
-        jObject["login"] = login;
-        jObject["password"] = password;
-        jArray.Add(jObject);
+        JObject gamekey = new JObject();
+        gamekey["gameKey"] = GameKey;
+        JObject reginfo = new JObject();
+        reginfo["login"] = login;
+        reginfo["password"] = password;
+        JObject cryptData = new JObject();
+        cryptData["regInfo"] = Encrypt(reginfo.ToString());
+        jArray.Add(gamekey);
         if (regAdditions != null)
         {
-            jArray.Add(regAdditions); 
+            cryptData["regAdditions"] = Encrypt(regAdditions.ToString());
         }
+        jArray.Add(cryptData);
         if (GameKey != string.Empty && ServerAdress != string.Empty)
         {
             StartCoroutine(PostRequest(ServerAdress + RegisterPostHeade, jArray.ToString(), (string result, bool status) => {
@@ -78,13 +91,22 @@ public class RankSystem : MonoBehaviour
 
     public void Auth(string login, string password, DelJson callback)
     {
-        JObject jObject = new JObject();
+
         if (GameKey != string.Empty && ServerAdress != string.Empty )
         {
-            jObject["gameKey"] = GameKey;
-            jObject["login"] = login;
-            jObject["password"] = password;
-            StartCoroutine(PostRequest(ServerAdress + AuthPostHeade, jObject.ToString(), (string result, bool status) => {
+            JArray jArray = new JArray();
+            JObject gamekey = new JObject();
+            gamekey["gameKey"] = GameKey;
+            jArray.Add(gamekey);
+
+            JObject authinfo = new JObject();
+            authinfo["login"] = login;
+            authinfo["password"] = password;
+            JObject cryptData = new JObject();
+            cryptData["authInfo"] = Encrypt(authinfo.ToString());
+            jArray.Add(cryptData);
+
+            StartCoroutine(PostRequest(ServerAdress + AuthPostHeade, jArray.ToString(), (string result, bool status) => {
                 JObject a = JObject.Parse(result);
                 if(a["error"] != null)
                 {
@@ -111,14 +133,16 @@ public class RankSystem : MonoBehaviour
         if (dataToSend != null && dataToSend["gameKey"] == null && SessionKey != string.Empty)
         {
             JArray jArray = new JArray();
-            JObject jObject = new JObject();
+            JObject gamekey = new JObject();
+            gamekey["gameKey"] = GameKey;
             JObject userData = new JObject();
-            jObject["gameKey"] = GameKey;
-            jObject["sessionKey"] = SessionKey;
-            jObject["type"] = "params";  
-            userData["userData"] = "'" + dataToSend.ToString() + "'"; 
-            jArray.Add(jObject);
-            jArray.Add(userData);
+            userData["sessionKey"] = SessionKey;
+            userData["type"] = "params";  
+            userData["userData"] = "'" + dataToSend.ToString() + "'";
+            JObject cryptData = new JObject();
+            cryptData["userData"] = Encrypt(userData.ToString());
+            jArray.Add(gamekey);
+            jArray.Add(cryptData);
             StartCoroutine(PostRequest(ServerAdress + SendPostHeade, jArray.ToString(), (string result, bool status) => {
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
@@ -144,11 +168,19 @@ public class RankSystem : MonoBehaviour
     {
         if (SessionKey != string.Empty)
         {
-            JObject jObject = new JObject();
-            jObject["gameKey"] = GameKey;
-            jObject["sessionKey"] = SessionKey;
-            jObject["count"] = count;
-            StartCoroutine(PostRequest(ServerAdress + GetRatingHeade, jObject.ToString(), (string result, bool status) => {
+
+
+            JArray jArray = new JArray();
+            JObject gamekey = new JObject();
+            gamekey["gameKey"] = GameKey;
+            JObject userData = new JObject();
+            userData["sessionKey"] = SessionKey;
+            userData["count"] = count;
+            JObject cryptData = new JObject();
+            cryptData["userData"] = Encrypt(userData.ToString());
+            jArray.Add(gamekey);
+            jArray.Add(cryptData);
+            StartCoroutine(PostRequest(ServerAdress + GetRatingHeade, jArray.ToString(), (string result, bool status) => {
                 Debug.Log(result);
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
@@ -175,14 +207,17 @@ public class RankSystem : MonoBehaviour
         if (SessionKey != string.Empty)
         {
             JArray jArray = new JArray();
-            JObject jObject = new JObject();
+            JObject gamekey = new JObject();
+            gamekey["gameKey"] = GameKey;
             JObject userData = new JObject();
-            jObject["gameKey"] = GameKey;
-            jObject["sessionKey"] = SessionKey;
-            jObject["type"] = "rating";
-
+            userData["sessionKey"] = SessionKey;
+            userData["type"] = "rating";
             userData["userData"] = rating;
-            jArray.Add(jObject);
+            JObject cryptData = new JObject();
+            cryptData["userData"] = Encrypt(userData.ToString());
+            jArray.Add(gamekey);
+            jArray.Add(cryptData);
+
             jArray.Add(userData);
             StartCoroutine(PostRequest(ServerAdress + SendPostHeade, jArray.ToString(), (string result, bool status) => {
                 JObject a = JObject.Parse(result);
@@ -209,14 +244,21 @@ public class RankSystem : MonoBehaviour
 
     public void GettingData( DelJson callback)
     {
-        JObject jObject = new JObject();
-        if (SessionKey != string.Empty)
-        {
-            jObject["gameKey"] = GameKey;
-            jObject["sessionKey"] = SessionKey;
+        if (SessionKey != string.Empty) { 
+           JArray jArray = new JArray();
+        JObject gamekey = new JObject();
+        gamekey["gameKey"] = GameKey;
+        JObject userData = new JObject();
+        userData["sessionKey"] = SessionKey;
+        JObject cryptData = new JObject();
+        cryptData["sessionKey"] = Encrypt(userData.ToString());
+        jArray.Add(gamekey);
+        jArray.Add(cryptData);
+
+        jArray.Add(userData);
 
 
-            StartCoroutine(PostRequest(ServerAdress + GetPostHeade, jObject.ToString(), (string result, bool status) => {
+        StartCoroutine(PostRequest(ServerAdress + GetPostHeade, jArray.ToString(), (string result, bool status) => {
                 JObject a = JObject.Parse(result);
                 if (a["error"] != null)
                 {
@@ -240,10 +282,12 @@ public class RankSystem : MonoBehaviour
 
     public void TestConnection()
     {
-        JObject jObject = new JObject();
+                
+
+    JObject jObject = new JObject();
         if(GameKey != string.Empty && ServerAdress != string.Empty)
         {
-            jObject["gameKey"] = GameKey;
+            jObject["gameKey"] = GameKey ;
             StartCoroutine(PostRequest(ServerAdress + TestConnectionPostHeade, jObject.ToString(),(string result, bool state)=>{
                 Debug.Log("Received: " + result);
             }));
@@ -271,6 +315,24 @@ public class RankSystem : MonoBehaviour
             callback(uwr.downloadHandler.text,true);
         }
     }
+
+    public string Encrypt(string message)
+    {
+        AesCryptoServiceProvider aes = new AesCryptoServiceProvider();
+        aes.BlockSize = 128;
+        aes.KeySize = 256;
+        aes.IV = UTF8Encoding.UTF8.GetBytes(IV);
+        aes.Key = UTF8Encoding.UTF8.GetBytes(SecurityKey);
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+        byte[] data = Encoding.UTF8.GetBytes(message);
+        using (ICryptoTransform encrypt = aes.CreateEncryptor())
+        {
+            byte[] dest = encrypt.TransformFinalBlock(data, 0, data.Length);
+            return Convert.ToBase64String(dest);
+        }
+    }
+
 
 #if UNITY_EDITOR
     [CustomEditor(typeof(RankSystem))]
